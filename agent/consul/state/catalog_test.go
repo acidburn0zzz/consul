@@ -4295,7 +4295,7 @@ func TestStateStore_IngressGatewaysForService(t *testing.T) {
 	{
 		idx, results, err := s.IngressGatewaysForService(ws, "service1", nil)
 		require.NoError(err)
-		require.Equal(uint64(5), idx)
+		require.Equal(uint64(11), idx)
 		require.Len(results, 2)
 		require.Equal("ingress1", results[0].Service.ID)
 		require.Equal("ingress2", results[1].Service.ID)
@@ -4305,7 +4305,7 @@ func TestStateStore_IngressGatewaysForService(t *testing.T) {
 	{
 		idx, results, err := s.IngressGatewaysForService(ws, "service2", nil)
 		require.NoError(err)
-		require.Equal(uint64(4), idx)
+		require.Equal(uint64(11), idx)
 		require.Len(results, 1)
 		require.Equal("ingress1", results[0].Service.ID)
 	}

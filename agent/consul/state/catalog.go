@@ -2164,36 +2164,29 @@ func makeUpstream(name, namespace string, port int) structs.Upstream {
 func (s *Store) IngressGatewaysForService(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	requestedService := structs.NewServiceID(serviceName, entMeta)
 
 	maxIdx, entries, err := s.configEntriesByKindTxn(tx, ws, structs.IngressGateway, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	var ingressServices map[structs.ServiceInfo]struct{}
+	var ingressServices []string
 	for _, entry := range entries {
 		ingressConfig := entry.(*structs.IngressGatewayConfigEntry)
-	ENTRIES_LOOP:
-		for _, listener := range ingressConfig.Listeners {
-			for _, service := range listener.Services {
-				// If the request specified a different namespace, skip this service.
-				namespace := entMeta.NamespaceOrDefault()
-				if namespace != service.NamespaceOrDefault() {
-					continue
-				}
-
-				if service.Name == serviceName || service.Name == structs.WildcardSpecifier {
-					svc := structs.ServiceInfo{Name: service.Name, EnterpriseMeta: service.EnterpriseMeta}
-					ingressServices[svc] = struct{}{}
-					break ENTRIES_LOOP
-				}
-			}
+		if ingressConfig.ContainsService(requestedService) {
+			ingressServices = append(ingressServices, ingressConfig.Name)
 		}
 	}
 
+	// If we don't have any matches, return early and make sure index is 0
+	if len(ingressServices) == 0 {
+		return 0, nil, nil
+	}
+
 	var nodes structs.CheckServiceNodes
-	for service, _ := range ingressServices {
-		idx, n, err := s.checkServiceNodesTxn(tx, ws, service.Name, false, &service.EnterpriseMeta)
+	for _, service := range ingressServices {
+		idx, n, err := s.checkServiceNodesTxn(tx, ws, service, false, entMeta)
 		if err != nil {
 			return 0, nil, err
 		}
