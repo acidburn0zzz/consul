@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// Recommended name for registration.
+// Recommended names for registration.
 const (
 	ConfigEntriesName = "config-entries"
 	ConfigEntryName   = "config-entry"
