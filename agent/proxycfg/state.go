@@ -107,9 +107,11 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
 func newState(ns *structs.NodeService, token string) (*state, error) {
-	if ns.Kind != structs.ServiceKindConnectProxy &&
-		ns.Kind != structs.ServiceKindMeshGateway &&
-		ns.Kind != structs.ServiceKindIngressGateway {
+	switch ns.Kind {
+	case structs.ServiceKindConnectProxy:
+	case structs.ServiceKindMeshGateway:
+	case structs.ServiceKindIngressGateway:
+	default:
 		return nil, errors.New("not a connect-proxy, mesh-gateway, or ingress-gateway")
 	}
 
