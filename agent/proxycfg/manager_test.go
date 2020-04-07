@@ -201,20 +201,22 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
 				Roots:           roots,
-				Leaf:            leaf,
 				ConnectProxy: configSnapshotConnectProxy{
-					DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-						"db": dbDefaultChain(),
-					},
-					WatchedUpstreams: nil, // Clone() clears this out
-					WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-						"db": {
-							"db.default.dc1": TestUpstreamNodes(t),
+					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+						Leaf: leaf,
+						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+							"db": dbDefaultChain(),
 						},
-					},
-					WatchedGateways: nil, // Clone() clears this out
-					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-						"db": {},
+						WatchedUpstreams: nil, // Clone() clears this out
+						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+							"db": {
+								"db.default.dc1": TestUpstreamNodes(t),
+							},
+						},
+						WatchedGateways: nil, // Clone() clears this out
+						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
+							"db": {},
+						},
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
@@ -246,21 +248,23 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
 				Roots:           roots,
-				Leaf:            leaf,
 				ConnectProxy: configSnapshotConnectProxy{
-					DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-						"db": dbSplitChain(),
-					},
-					WatchedUpstreams: nil, // Clone() clears this out
-					WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-						"db": {
-							"v1.db.default.dc1": TestUpstreamNodes(t),
-							"v2.db.default.dc1": TestUpstreamNodesAlternate(t),
+					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+						Leaf: leaf,
+						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+							"db": dbSplitChain(),
 						},
-					},
-					WatchedGateways: nil, // Clone() clears this out
-					WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-						"db": {},
+						WatchedUpstreams: nil, // Clone() clears this out
+						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+							"db": {
+								"v1.db.default.dc1": TestUpstreamNodes(t),
+								"v2.db.default.dc1": TestUpstreamNodesAlternate(t),
+							},
+						},
+						WatchedGateways: nil, // Clone() clears this out
+						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
+							"db": {},
+						},
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
@@ -394,7 +398,7 @@ func testManager_BasicLifecycle(
 	types.leaf.Set(leafCacheKey, newLeaf)
 
 	// Expect new roots in snapshot
-	expectSnap.Leaf = newLeaf
+	expectSnap.ConnectProxy.Leaf = newLeaf
 	assertWatchChanRecvs(t, wCh, expectSnap)
 	assertWatchChanRecvs(t, wCh2, expectSnap)
 

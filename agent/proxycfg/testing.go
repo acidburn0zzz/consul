@@ -585,18 +585,20 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			Upstreams: structs.TestUpstreams(t),
 		},
 		Roots: roots,
-		Leaf:  leaf,
 		ConnectProxy: configSnapshotConnectProxy{
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
+				},
 			},
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
-				},
 			},
 		},
 		Datacenter: "dc1",
@@ -880,14 +882,16 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 			Upstreams: structs.TestUpstreams(t),
 		},
 		Roots: roots,
-		Leaf:  leaf,
 		ConnectProxy: configSnapshotConnectProxy{
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
 				},
 			},
 		},
@@ -1056,17 +1060,19 @@ func testConfigSnapshotIngressGateway(t testing.T, populateServices bool) *Confi
 		ProxyID:    structs.NewServiceID("ingress-gateway", nil),
 		Address:    "1.2.3.4",
 		Roots:      roots,
-		Leaf:       leaf,
 		Datacenter: "dc1",
 	}
 	if populateServices {
 		snap.IngressGateway = configSnapshotIngressGateway{
-			DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-				"db": dbChain,
-			},
-			WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-				"db": map[string]structs.CheckServiceNodes{
-					"db.default.dc1": TestUpstreamNodes(t),
+			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
+				Leaf: leaf,
+				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
+					"db": dbChain,
+				},
+				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
+					"db": map[string]structs.CheckServiceNodes{
+						"db.default.dc1": TestUpstreamNodes(t),
+					},
 				},
 			},
 			Upstreams: structs.Upstreams{

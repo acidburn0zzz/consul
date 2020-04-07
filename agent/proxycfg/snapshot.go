@@ -7,15 +7,32 @@ import (
 	"github.com/mitchellh/copystructure"
 )
 
-type configSnapshotConnectProxy struct {
-	DiscoveryChain           map[string]*structs.CompiledDiscoveryChain // this is keyed by the Upstream.Identifier(), not the chain name
-	WatchedUpstreams         map[string]map[string]context.CancelFunc
+// A shared data structure that contains information about discovered upstreams
+type ConfigSnapshotUpstreams struct {
+	Leaf *structs.IssuedCert
+	// DiscoveryChain is a map of upstream.Identifier() ->
+	// CompiledDiscoveryChain's, and is used to determine what services could be
+	// targeted by this upstream. We then instantiate watches for those targets.
+	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
+
+	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID ->
+	// CancelFunc's) in order to cancel any watches when the configuration is
+	// changed.
+	WatchedUpstreams map[string]map[string]context.CancelFunc
+
+	// WatchedUpstreamEndpoints is a map of upstream.Identifier() -> (map of
+	// TargetID -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of an upstream.
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 	WatchedGateways          map[string]map[string]context.CancelFunc
 	WatchedGatewayEndpoints  map[string]map[string]structs.CheckServiceNodes
-	WatchedServiceChecks     map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
+}
 
-	PreparedQueryEndpoints map[string]structs.CheckServiceNodes // DEPRECATED:see:WatchedUpstreamEndpoints
+type configSnapshotConnectProxy struct {
+	ConfigSnapshotUpstreams
+
+	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
+	PreparedQueryEndpoints map[string]structs.CheckServiceNodes      // DEPRECATED:see:WatchedUpstreamEndpoints
 }
 
 func (c *configSnapshotConnectProxy) IsEmpty() bool {
@@ -107,6 +124,7 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 }
 
 type configSnapshotIngressGateway struct {
+	ConfigSnapshotUpstreams
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic to. This is
 	// constructed from the ingress-gateway config entry, Config, and the
 	// ServiceLists fields.
@@ -116,20 +134,6 @@ type configSnapshotIngressGateway struct {
 	// in order to cancel any watches when the ingress gateway configuration is
 	// changed.
 	WatchedDiscoveryChains map[string]context.CancelFunc
-
-	// DiscoveryChain is a map of upstream.Identifier() ->
-	// CompiledDiscoveryChain's, and is used to determine what services could be
-	// targeted by this upstream. We then instantiate watches for those targets.
-	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
-
-	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID -> CancelFunc's)
-	// in order to cancel any watches when the ingress gateway configuration is
-	// changed.
-	WatchedUpstreams map[string]map[string]context.CancelFunc
-
-	// WatchedUpstreamEndpoints is a map of upstream.Identifier() -> (map of TargetID -> CheckServiceNodes)
-	// and is used to determine the backing endpoints of an upstream.
-	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 }
 
 func (c *configSnapshotIngressGateway) IsEmpty() bool {
@@ -159,8 +163,6 @@ type ConfigSnapshot struct {
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots
-	// Used for connect-proxy and ingress-gateway proxies
-	Leaf *structs.IssuedCert
 
 	// connect-proxy specific
 	ConnectProxy configSnapshotConnectProxy
@@ -178,7 +180,7 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		return s.Roots != nil && s.Leaf != nil
+		return s.Roots != nil && s.ConnectProxy.Leaf != nil
 	case structs.ServiceKindMeshGateway:
 		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
 			if len(s.MeshGateway.ConsulServers) == 0 {
@@ -188,7 +190,7 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil && (s.MeshGateway.WatchedServicesSet || len(s.MeshGateway.ServiceGroups) > 0)
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
-			s.Leaf != nil
+			s.IngressGateway.Leaf != nil
 	default:
 		return false
 	}
@@ -218,4 +220,15 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 	}
 
 	return snap, nil
+}
+
+func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return s.ConnectProxy.Leaf
+	case structs.ServiceKindIngressGateway:
+		return s.IngressGateway.Leaf
+	default:
+		return nil
+	}
 }

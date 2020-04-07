@@ -185,7 +185,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// actually resend all blocked types on the new "version" anyway since it
 	// doesn't know _what_ changed. We could do something trivial but let's
 	// simulate a leaf cert expiring and being rotated.
-	snap.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
+	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, sid, snap)
 
 	// All 3 response that have something to return should return with new version
@@ -229,7 +229,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Change config again and make sure it's delivered to everyone!
-	snap.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
+	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(t, snap, "", 3, 7))
@@ -344,10 +344,10 @@ func expectedTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, require
 			"tlsCertificates": [
 				{
 					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.Leaf.CertPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.Leaf().CertPEM, "\n", "\\n", -1) + `"
 					},
 					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.Leaf.PrivateKeyPEM, "\n", "\\n", -1) + `"
+						"inlineString": "` + strings.Replace(snap.Leaf().PrivateKeyPEM, "\n", "\\n", -1) + `"
 					}
 				}
 			],

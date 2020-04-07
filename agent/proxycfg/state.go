@@ -512,6 +512,8 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.IngressGateway.DiscoveryChain = make(map[string]*structs.CompiledDiscoveryChain)
 		snap.IngressGateway.WatchedUpstreams = make(map[string]map[string]context.CancelFunc)
 		snap.IngressGateway.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+		snap.IngressGateway.WatchedGateways = make(map[string]map[string]context.CancelFunc)
+		snap.IngressGateway.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 	}
 
 	return snap
@@ -636,7 +638,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		snap.Leaf = leaf
+		snap.ConnectProxy.Leaf = leaf
 
 	case u.CorrelationID == intentionsWatchID:
 		// Not in snapshot currently, no op
@@ -649,7 +651,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
 		snap.ConnectProxy.DiscoveryChain[svc] = resp.Chain
 
-		if err := s.resetWatchesFromChain(svc, resp.Chain, snap); err != nil {
+		if err := s.resetWatchesFromChain(svc, resp.Chain, &snap.ConnectProxy.ConfigSnapshotUpstreams); err != nil {
 			return err
 		}
 
@@ -721,7 +723,7 @@ func removeColonPrefix(s string) (string, string, bool) {
 func (s *state) resetWatchesFromChain(
 	id string,
 	chain *structs.CompiledDiscoveryChain,
-	snap *ConfigSnapshot,
+	snap *ConfigSnapshotUpstreams,
 ) error {
 	s.logger.Trace("resetting watches for discovery chain", "id", id)
 	if chain == nil {
@@ -729,17 +731,17 @@ func (s *state) resetWatchesFromChain(
 	}
 
 	// Initialize relevant sub maps.
-	if _, ok := snap.ConnectProxy.WatchedUpstreams[id]; !ok {
-		snap.ConnectProxy.WatchedUpstreams[id] = make(map[string]context.CancelFunc)
+	if _, ok := snap.WatchedUpstreams[id]; !ok {
+		snap.WatchedUpstreams[id] = make(map[string]context.CancelFunc)
 	}
-	if _, ok := snap.ConnectProxy.WatchedUpstreamEndpoints[id]; !ok {
-		snap.ConnectProxy.WatchedUpstreamEndpoints[id] = make(map[string]structs.CheckServiceNodes)
+	if _, ok := snap.WatchedUpstreamEndpoints[id]; !ok {
+		snap.WatchedUpstreamEndpoints[id] = make(map[string]structs.CheckServiceNodes)
 	}
-	if _, ok := snap.ConnectProxy.WatchedGateways[id]; !ok {
-		snap.ConnectProxy.WatchedGateways[id] = make(map[string]context.CancelFunc)
+	if _, ok := snap.WatchedGateways[id]; !ok {
+		snap.WatchedGateways[id] = make(map[string]context.CancelFunc)
 	}
-	if _, ok := snap.ConnectProxy.WatchedGatewayEndpoints[id]; !ok {
-		snap.ConnectProxy.WatchedGatewayEndpoints[id] = make(map[string]structs.CheckServiceNodes)
+	if _, ok := snap.WatchedGatewayEndpoints[id]; !ok {
+		snap.WatchedGatewayEndpoints[id] = make(map[string]structs.CheckServiceNodes)
 	}
 
 	// We could invalidate this selectively based on a hash of the relevant
@@ -747,14 +749,14 @@ func (s *state) resetWatchesFromChain(
 	// upstream when the chain changes in any way.
 	//
 	// TODO(rb): content hash based add/remove
-	for targetID, cancelFn := range snap.ConnectProxy.WatchedUpstreams[id] {
+	for targetID, cancelFn := range snap.WatchedUpstreams[id] {
 		s.logger.Trace("stopping watch of target",
 			"upstream", id,
 			"chain", chain.ServiceName,
 			"target", targetID,
 		)
-		delete(snap.ConnectProxy.WatchedUpstreams[id], targetID)
-		delete(snap.ConnectProxy.WatchedUpstreamEndpoints[id], targetID)
+		delete(snap.WatchedUpstreams[id], targetID)
+		delete(snap.WatchedUpstreamEndpoints[id], targetID)
 		cancelFn()
 	}
 
@@ -790,11 +792,11 @@ func (s *state) resetWatchesFromChain(
 			return err
 		}
 
-		snap.ConnectProxy.WatchedUpstreams[id][target.ID] = cancel
+		snap.WatchedUpstreams[id][target.ID] = cancel
 	}
 
 	for dc, _ := range needGateways {
-		if _, ok := snap.ConnectProxy.WatchedGateways[id][dc]; ok {
+		if _, ok := snap.WatchedGateways[id][dc]; ok {
 			continue
 		}
 
@@ -811,10 +813,10 @@ func (s *state) resetWatchesFromChain(
 			return err
 		}
 
-		snap.ConnectProxy.WatchedGateways[id][dc] = cancel
+		snap.WatchedGateways[id][dc] = cancel
 	}
 
-	for dc, cancelFn := range snap.ConnectProxy.WatchedGateways[id] {
+	for dc, cancelFn := range snap.WatchedGateways[id] {
 		if _, ok := needGateways[dc]; ok {
 			continue
 		}
@@ -823,8 +825,8 @@ func (s *state) resetWatchesFromChain(
 			"chain", chain.ServiceName,
 			"datacenter", dc,
 		)
-		delete(snap.ConnectProxy.WatchedGateways[id], dc)
-		delete(snap.ConnectProxy.WatchedGatewayEndpoints[id], dc)
+		delete(snap.WatchedGateways[id], dc)
+		delete(snap.WatchedGatewayEndpoints[id], dc)
 		cancelFn()
 	}
 
@@ -1032,7 +1034,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		snap.Leaf = leaf
+		snap.IngressGateway.Leaf = leaf
 	case u.CorrelationID == gatewayUpstreamsWatchID:
 		upstreams, ok := u.Result.(*structs.IndexedUpstreams)
 		if !ok {
@@ -1069,7 +1071,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
 		snap.IngressGateway.DiscoveryChain[svc] = resp.Chain
 
-		if err := s.resetIngressWatchesFromChain(svc, resp.Chain, snap); err != nil {
+		if err := s.resetWatchesFromChain(svc, resp.Chain, &snap.IngressGateway.ConfigSnapshotUpstreams); err != nil {
 			return err
 		}
 
@@ -1091,6 +1093,8 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		}
 		snap.IngressGateway.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
 
+	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
+		// TODO(gateways): Handle mesh-gateway functionality
 	default:
 		s.logger.Warn("received unknown update event", "event", u)
 	}
@@ -1119,68 +1123,6 @@ func (s *state) watchIngressDiscoveryChain(snap *ConfigSnapshot, u structs.Upstr
 	}
 
 	snap.IngressGateway.WatchedDiscoveryChains[u.Identifier()] = cancel
-	return nil
-}
-
-// todo(ingress): Go back to using resetWatchesFromChain like connect proxies do after
-// adding mesh gateway logic to ingress.
-func (s *state) resetIngressWatchesFromChain(
-	id string,
-	chain *structs.CompiledDiscoveryChain,
-	snap *ConfigSnapshot,
-) error {
-	s.logger.Trace("resetting watches for discovery chain", "id", id)
-	if chain == nil {
-		return fmt.Errorf("not possible to arrive here with no discovery chain")
-	}
-
-	// Initialize relevant sub maps.
-	if _, ok := snap.IngressGateway.WatchedUpstreams[id]; !ok {
-		snap.IngressGateway.WatchedUpstreams[id] = make(map[string]context.CancelFunc)
-	}
-	if _, ok := snap.IngressGateway.WatchedUpstreamEndpoints[id]; !ok {
-		snap.IngressGateway.WatchedUpstreamEndpoints[id] = make(map[string]structs.CheckServiceNodes)
-	}
-
-	// We could invalidate this selectively based on a hash of the relevant
-	// resolver information, but for now just reset anything about this
-	// upstream when the chain changes in any way.
-	for targetID, cancelFn := range snap.IngressGateway.WatchedUpstreams[id] {
-		s.logger.Trace("stopping watch of target",
-			"upstream", id,
-			"chain", chain.ServiceName,
-			"target", targetID,
-		)
-		delete(snap.IngressGateway.WatchedUpstreams[id], targetID)
-		delete(snap.IngressGateway.WatchedUpstreamEndpoints[id], targetID)
-		cancelFn()
-	}
-
-	for _, target := range chain.Targets {
-		s.logger.Trace("initializing watch of target",
-			"upstream", id,
-			"chain", chain.ServiceName,
-			"target", target.ID,
-			"mesh-gateway-mode", target.MeshGateway.Mode,
-		)
-
-		ctx, cancel := context.WithCancel(s.ctx)
-		err := s.watchConnectProxyService(
-			ctx,
-			"upstream-target:"+target.ID+":"+id,
-			target.Service,
-			target.Datacenter,
-			target.Subset.Filter,
-			target.GetEnterpriseMetadata(),
-		)
-		if err != nil {
-			cancel()
-			return err
-		}
-
-		snap.IngressGateway.WatchedUpstreams[id][target.ID] = cancel
-	}
-
 	return nil
 }
 

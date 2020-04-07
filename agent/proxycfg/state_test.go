@@ -511,7 +511,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.True(t, snap.MeshGateway.IsEmpty())
 				require.Equal(t, indexedRoots, snap.Roots)
 
-				require.Equal(t, issuedCert, snap.Leaf)
+				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
 				require.Len(t, snap.ConnectProxy.DiscoveryChain, 5, "%+v", snap.ConnectProxy.DiscoveryChain)
 				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 5, "%+v", snap.ConnectProxy.WatchedUpstreams)
 				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 5, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
@@ -537,7 +537,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.True(t, snap.MeshGateway.IsEmpty())
 				require.Equal(t, indexedRoots, snap.Roots)
 
-				require.Equal(t, issuedCert, snap.Leaf)
+				require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
 				require.Len(t, snap.ConnectProxy.DiscoveryChain, 5, "%+v", snap.ConnectProxy.DiscoveryChain)
 				require.Len(t, snap.ConnectProxy.WatchedUpstreams, 5, "%+v", snap.ConnectProxy.WatchedUpstreams)
 				require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 5, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
@@ -660,7 +660,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid(), "gateway with root and leaf certs is valid")
-						require.Equal(t, issuedCert, snap.Leaf)
+						require.Equal(t, issuedCert, snap.IngressGateway.Leaf)
 					},
 				},
 				verificationStage{

@@ -887,18 +887,19 @@ func makeCommonTLSContext(cfgSnap *proxycfg.ConfigSnapshot) *envoyauth.CommonTls
 		rootPEMS += root.RootCert
 	}
 
+	leaf := cfgSnap.Leaf()
 	return &envoyauth.CommonTlsContext{
 		TlsParams: &envoyauth.TlsParameters{},
 		TlsCertificates: []*envoyauth.TlsCertificate{
 			&envoyauth.TlsCertificate{
 				CertificateChain: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
-						InlineString: cfgSnap.Leaf.CertPEM,
+						InlineString: leaf.CertPEM,
 					},
 				},
 				PrivateKey: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
-						InlineString: cfgSnap.Leaf.PrivateKeyPEM,
+						InlineString: leaf.PrivateKeyPEM,
 					},
 				},
 			},
