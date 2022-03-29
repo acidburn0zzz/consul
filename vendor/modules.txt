@@ -127,7 +127,7 @@ github.com/go-ole/go-ole/oleutil
 # github.com/gogo/googleapis v1.1.0
 github.com/gogo/googleapis/google/api
 github.com/gogo/googleapis/google/rpc
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
@@ -171,6 +171,13 @@ github.com/gophercloud/gophercloud/pagination
 # github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7
 github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
+# github.com/hashicorp/consul/api v1.4.0 => ./api
+github.com/hashicorp/consul/api
+github.com/hashicorp/consul/api/watch
+# github.com/hashicorp/consul/sdk v0.4.0 => ./sdk
+github.com/hashicorp/consul/sdk/freeport
+github.com/hashicorp/consul/sdk/testutil
+github.com/hashicorp/consul/sdk/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-bexpr v0.1.2
@@ -404,12 +411,13 @@ github.com/vmware/govmomi/vim25/progress
 github.com/vmware/govmomi/vim25/soap
 github.com/vmware/govmomi/vim25/types
 github.com/vmware/govmomi/vim25/xml
-# golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
+# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 golang.org/x/crypto/blake2b
+golang.org/x/crypto/blowfish
+golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
@@ -417,8 +425,9 @@ golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190923162816-aa69164e4478
+# golang.org/x/net v0.0.0-20201021035429-f5854403a974
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -441,15 +450,16 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+# golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
+# golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.3
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/internal
